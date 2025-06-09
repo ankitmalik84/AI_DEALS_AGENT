@@ -58,4 +58,8 @@ class Config:
         return {
             "user": PUSHOVER_USER,
             "token": PUSHOVER_TOKEN
-        } 
+        }
+
+    @staticmethod
+    def get_tavily_key():
+        return TAVILY_API_KEY  # Return None if not set, allowing graceful fallback to RSS 

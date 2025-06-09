@@ -43,9 +43,37 @@ The **AI Deal Agent Framework** is a sophisticated multi-agent system designed t
 
 The AI Deal Agent Framework operates through a sophisticated 7-step workflow that runs continuously to identify lucrative deals:
 
-#### Step 1: 🔍 **RSS Feed Scanning & Data Scraping**
+#### Step 1: 🔍 **Multi-Source Deal Discovery**
 
-The **Scanner Agent** initiates the process by:
+The system uses **dual scanning approaches** for comprehensive deal coverage:
+
+##### **Option A: Tavily Scanner** (🇮🇳 **Indian Market Focus**)
+
+The **Tavily Scanner Agent** provides real-time Indian deal discovery:
+
+- **AI-Powered Search**: Uses Tavily's intelligent search API to find current deals
+- **Indian E-commerce Focus**: Targets major Indian platforms:
+
+  - Flipkart (`flipkart.com`)
+  - Amazon India (`amazon.in`)
+  - Myntra (`myntra.com`)
+  - Snapdeal (`snapdeal.com`)
+  - Paytm Mall (`paytm.com`)
+  - Tata CLiQ (`tatacliq.com`)
+
+- **Smart Query Strategy**: Executes targeted searches for:
+
+  - "best deals discounts electronics Flipkart Amazon India today"
+  - "smartphone mobile phone offers discount India 2024"
+  - "laptop computer deals Amazon India Flipkart sale"
+  - "home appliances discount offers India electronics"
+
+- **Real-time Results**: Fresh deal discovery with current pricing in INR (₹)
+- **Market Relevance**: Products available for Indian consumers with local shipping
+
+##### **Option B: RSS Scanner** (🌍 **International Backup**)
+
+The **RSS Scanner Agent** monitors traditional feed sources:
 
 - **Multi-Source Scraping**: Monitors 5 RSS feeds from DealNews covering:
 
@@ -64,6 +92,18 @@ The **Scanner Agent** initiates the process by:
 
 - **Memory Filtering**: Compares scraped deals against `memory.json` to avoid duplicate processing
 
+##### **Intelligent Scanner Selection**
+
+The **Planning Agent** intelligently chooses the best data source:
+
+```python
+# Prioritizes Indian deals when Tavily is available
+if prefer_indian_deals and has_tavily:
+    selection = tavily_scanner.scan(memory)  # Try Indian deals first
+if not selection:
+    selection = rss_scanner.scan(memory)     # Fallback to international
+```
+
 #### Step 2: 🧠 **AI-Powered Deal Curation**
 
 The **Scanner Agent** uses OpenAI GPT-4o-mini with **Structured Outputs** to:
@@ -81,6 +121,16 @@ The **Scanner Agent** uses OpenAI GPT-4o-mini with **Structured Outputs** to:
   - Filters out deals with unclear or missing pricing
 
 - **Top 5 Selection**: Returns the 5 most promising deals with detailed descriptions
+
+#### 2b. **Tavily Scanner Agent** (`agents/tavily_scanner_agent.py`) 🆕
+
+- **Role**: AI-powered Indian deal discovery
+- **Color**: Cyan 🔵
+- **Functions**:
+  - Uses Tavily search API for real-time deal discovery
+  - Targets major Indian e-commerce platforms (Flipkart, Amazon India, etc.)
+  - Extracts INR pricing and local product availability
+  - Provides fresh, market-relevant deals for Indian consumers
 
 #### Step 3: 💰 **Multi-Model Price Estimation**
 
@@ -216,6 +266,16 @@ The framework consists of several specialized agents working in coordination:
   - Filters deals based on description quality and price clarity
   - Avoids duplicate deals using memory system
 
+#### 2b. **Tavily Scanner Agent** (`agents/tavily_scanner_agent.py`) 🆕
+
+- **Role**: AI-powered Indian deal discovery
+- **Color**: Cyan 🔵
+- **Functions**:
+  - Uses Tavily search API for real-time deal discovery
+  - Targets major Indian e-commerce platforms (Flipkart, Amazon India, etc.)
+  - Extracts INR pricing and local product availability
+  - Provides fresh, market-relevant deals for Indian consumers
+
 #### 3. **Ensemble Agent** (`agents/ensemble_agent.py`)
 
 - **Role**: Advanced price estimation using multiple models
@@ -269,6 +329,7 @@ The framework consists of several specialized agents working in coordination:
 - **Modal**: Serverless GPU hosting for fine-tuned models
 - **ChromaDB**: Vector database for similarity search
 - **OpenAI/DeepSeek**: LLM APIs for deal analysis
+- **Tavily**: AI-powered search API for real-time Indian deal discovery
 - **Twilio**: Communication platform for alerts
 - **scikit-learn**: Machine learning models
 - **Transformers**: Hugging Face model ecosystem
@@ -287,8 +348,7 @@ feedparser            # RSS feed parsing
 openai                # OpenAI API client
 modal                 # Serverless model hosting
 sentence-transformers # Text embeddings
-datasets              # Data handling
-matplotlib            # Visualization (testing)
+tavily-python         # AI search for Indian deals
 ```
 
 ## 📁 Project Structure
@@ -299,6 +359,7 @@ deals_agents/
 │   ├── agent.py              # Base agent class with logging
 │   ├── planning_agent.py     # Main orchestrator
 │   ├── scanner_agent.py      # Deal discovery
+│   ├── tavily_scanner_agent.py # Indian deal discovery
 │   ├── ensemble_agent.py     # Model coordination
 │   ├── specialist_agent.py   # Fine-tuned LLM
 │   ├── frontier_agent.py     # RAG-based pricing
@@ -349,6 +410,7 @@ HUGGINGFACE_TOKEN=your_huggingface_token_here
 
 # Optional API Keys
 DEEPSEEK_API_KEY=your_deepseek_api_key_here  # Alternative to OpenAI
+TAVILY_API_KEY=your_tavily_api_key_here      # For Indian deal discovery (optional)
 
 # Twilio Configuration (for notifications)
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
@@ -395,6 +457,13 @@ python deal_agent_framework.py
 python test_modal.py
 ```
 
+### Testing Tavily Scanner
+
+```bash
+# Test the Tavily scanner for Indian deals
+python test_tavily_scanner.py
+```
+
 ### Keep Modal Service Warm
 
 ```bash
@@ -429,6 +498,23 @@ print(f"Found {len(opportunities)} opportunities")
 4. **Model Fusion**: Linear regression combines individual predictions
 5. **Opportunity Detection**: Deals with >$50 discount are flagged
 6. **Alert Generation**: Messaging Agent sends notifications via SMS/WhatsApp
+
+### 📋 **Detailed Execution Analysis**
+
+For a comprehensive walkthrough of the system in action with real logs and step-by-step analysis, see:
+
+**📊 [System Logs Analysis & Execution Flow](SYSTEM_LOGS_EXPLANATION.md)**
+
+This detailed document provides:
+
+- 🚀 Live execution timeline with actual system logs
+- 🔍 Phase-by-phase breakdown of agent collaboration
+- 💰 Complete deal analysis results from all 5 discovered deals
+- ⏱️ Performance metrics and timing analysis
+- 🧠 AI model behavior patterns and insights
+- 🔬 Technical analysis of the multi-agent coordination
+
+_Perfect for understanding how the 8 AI agents work together to discover and evaluate deals!_
 
 ## 🧪 Model Evaluation
 
@@ -561,23 +647,6 @@ rm -rf products_vectorstore/
 - **Ensemble Weights**: Dynamic weight adjustment
 - **Category Specialists**: Product-category-specific models
 - **Real-time Learning**: Continuous model updates
-
-## 🌐 Alternative Versions
-
-### Tavily Search Integration
-
-For users interested in exploring enhanced web search capabilities, check out our **Tavily-powered version** of the Deal Agent:
-
-🔗 **[Tavily Branch](https://github.com/ankitmalik84/Deals_Agent/tree/tavily)**
-
-This alternative implementation integrates **Tavily's real-time web search API** to enhance deal discovery and price validation with:
-
-- **Real-time Market Research**: Live web searches for current product pricing
-- **Enhanced Price Validation**: Cross-reference deals against multiple online sources
-- **Broader Deal Discovery**: Search beyond RSS feeds to find hidden opportunities
-- **Dynamic Market Insights**: Real-time competitor pricing and availability data
-
-The Tavily version provides a more comprehensive approach to deal hunting by leveraging live web data alongside the existing AI ensemble models.
 
 ## 📄 License
 

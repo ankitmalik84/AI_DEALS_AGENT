@@ -2,7 +2,7 @@ twilio
 python-dotenv
 chromadb
 scikit-learn
-numpy 
+numpy
 bs4
 feedparser
 openai
@@ -15,3 +15,10 @@ matplotlib
 # tqdm
 # requests
 # time
+accelerate
+bitsandbytes
+torch
+requests
+lxml
+tqdm
+tavily-python
