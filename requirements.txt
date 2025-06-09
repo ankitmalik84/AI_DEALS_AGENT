@@ -1,0 +1,17 @@
+twilio
+python-dotenv
+chromadb
+scikit-learn
+numpy 
+bs4
+feedparser
+openai
+joblib
+pandas
+modal
+sentence-transformers
+datasets
+matplotlib
+# tqdm
+# requests
+# time

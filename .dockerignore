@@ -1,0 +1,26 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Large model files
+*.pkl
+train.pkl
+test.pkl
+random_forest_model.pkl
+
+# Development
+.env
+*.log
+.DS_Store
+
+# Existing vector store data (will be created fresh in container)
+products_vectorstore/ 
