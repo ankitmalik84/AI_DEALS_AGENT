@@ -568,7 +568,7 @@ rm -rf products_vectorstore/
 
 For users interested in exploring enhanced web search capabilities, check out our **Tavily-powered version** of the Deal Agent:
 
-🔗 **[Tavily Branch](https://github.com/ankitmalik84/Deals_Agent/tree/tavily)**
+🔗 **[Tavily Branch](https://github.com/ankitmalik84/AI_DEALS_AGENT/tree/tavily)**
 
 This alternative implementation integrates **Tavily's real-time web search API** to enhance deal discovery and price validation with:
 
