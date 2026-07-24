@@ -201,9 +201,16 @@ Every agent inherits from `agents/agent.py` (a tiny base class that gives each a
 
 - **Role:** Domain-tuned LLM pricer.
 - **What it is:** a `meta-llama/Meta-Llama-3.1-8B` base model + LoRA adapter (`ed-donner/pricer-...`) loaded with 4-bit NF4 quantization on a T4 GPU, exposed as a Modal class (`pricer_service.py`).
-- **Why fine-tune instead of prompt-engineer:** prices live in the tail of the model's text distribution. A short fine-tune (LoRA on price-labeled product text) teaches the model the standard prompt format `How much does this cost...? Price is $...` and dramatically tightens the output distribution. Inference is constrained to `max_new_tokens=5` and the answer is regex-extracted.
-- **Why Modal:** lets us pay only for inference seconds and keeps the 8 B-parameter model off the local box.
-- **Why 4-bit NF4 quantization:** fits Llama-3.1-8B on a single T4 with usable latency and minimal quality loss for a regression-style task.
+- **Fine-tuning stack (how to describe it):**
+  - **PEFT** — the category / Hugging Face library for parameter-efficient fine-tuning (freeze most of the base model; train only a small set of extra weights).
+  - **LoRA** — the PEFT *method* used here: inject low-rank adapter matrices into attention layers instead of updating all 8B parameters.
+  - **QLoRA-style 4-bit NF4** — the *optimization*: keep the base model in 4-bit NF4 so an 8B model fits on a single T4; adapters attach via `PeftModel.from_pretrained` in `pricer_service.py`.
+  - One-liner: **PEFT (category) → LoRA (method) → QLoRA / 4-bit NF4 (optimization)** on Llama 3.1 8B.
+- **Why fine-tune instead of prompt-engineer:** prices live in the tail of the model's text distribution. A short LoRA fine-tune on price-labeled product text teaches the standard prompt format `How much does this cost...? Price is $...` and tightens the output distribution. Inference is constrained to `max_new_tokens=5` and the answer is regex-extracted.
+- **Why LoRA (not a full fine-tune):** full 8B updates are expensive in VRAM, storage, and time. LoRA trains a small adapter, keeps the base frozen, and is easy to swap or version.
+- **Why Modal:** pay only for inference seconds and keep the 8B model off the local machine.
+- **Why 4-bit NF4:** usable latency on a T4 with minimal quality loss for this regression-style pricing task.
+- **Inference path:** local `SpecialistAgent` → Modal RPC → quantized Llama + LoRA adapter → short numeric completion → float price.
 
 ### 5.5 Frontier Agent — `agents/frontier_agent.py` 🔵
 
@@ -211,16 +218,18 @@ Every agent inherits from `agents/agent.py` (a tiny base class that gives each a
 - **What it does:**
   1. Embed the description with `sentence-transformers/all-MiniLM-L6-v2` (384-dim).
   2. Query ChromaDB for the **5 nearest neighbors** with their known prices.
-  3. Send a prompt containing those 5 priced exemplars + the new description to **OpenAI `gpt-4o-mini`** (or **DeepSeek `deepseek-chat`** if `DEEPSEEK_API_KEY` is set — automatic fallback).
+  3. Send a prompt containing those 5 priced exemplars + the new description to **OpenAI `gpt-4o-mini`** (or **DeepSeek `deepseek-chat`** if `DEEPSEEK_API_KEY` is set — provider preference, not runtime failover).
   4. Parse the response with a regex.
 - **Why RAG instead of a bigger fine-tune:** comparable items anchor the LLM's estimate in actual market prices instead of training memory. Updating the corpus (re-embedding new products into Chroma) is cheap; retraining isn't.
-- **Why DeepSeek fallback:** redundancy + cost. The agent picks whichever provider is configured, so an outage of one doesn't kill the pipeline.
+- **Why DeepSeek option:** if `DEEPSEEK_API_KEY` is set, Frontier uses DeepSeek; otherwise OpenAI. Useful for cost and redundancy of provider choice.
 
 ### 5.6 Random Forest Agent — `agents/random_forest_agent.py` 🟣
 
-- **Role:** Cheap, deterministic baseline.
+- **Role:** Cheap, deterministic baseline — classical ML counterpart to the Specialist's LLM path.
 - **What it does:** embed description with MiniLM → `RandomForestRegressor.predict(vector)` → clamp to ≥ 0.
-- **Why it stays in the ensemble:** it is the only model that is fully local, has no API, and is essentially free per call. It acts as a sanity floor: when the LLM-based pricers hallucinate or time out, the RF estimate is still there and the meta-model can lean on it.
+- **Training (offline):** labeled products from `train.pkl` → MiniLM 384-dim embeddings → fit `sklearn.ensemble.RandomForestRegressor` → save `random_forest_model.pkl`.
+- **Vs Specialist:** Specialist *reads* product text with a fine-tuned LLM (flexible, GPU, higher cost). Random Forest maps a fixed embedding to price with trees (rigid, local CPU, near-free). They fail on different cases, which is why both feed the ensemble.
+- **Why it stays in the ensemble:** fully local, no API, essentially free per call — a sanity floor when LLM pricers hallucinate or time out.
 
 ### 5.7 Messaging Agent — `agents/messaging_agent.py` ⚪
 
@@ -294,7 +303,7 @@ Stacking with a linear meta-model lets the system **learn from disagreement**:
 | Orchestrator | Custom multi-agent classes | No framework dependency; trivial to reason about and debug. |
 | Curation LLM | OpenAI `gpt-4o-mini` | Cheap, fast, excellent at structured JSON outputs. |
 | RAG LLM | `gpt-4o-mini` or DeepSeek `deepseek-chat` | Auto-fallback, both cheap, both good enough with strong RAG context. |
-| Fine-tuned LLM | Llama 3.1 8B + LoRA, 4-bit NF4 | Open weights, fits on a T4, LoRA keeps training tractable. |
+| Fine-tuned LLM | Llama 3.1 8B — **PEFT / LoRA / QLoRA (4-bit NF4)** | PEFT category, LoRA adapters, 4-bit NF4 so it fits a T4; open weights, cheap to swap adapters. |
 | Model hosting | Modal | Serverless GPU, pay-per-second, infrastructure as code. |
 | Embeddings | `sentence-transformers/all-MiniLM-L6-v2` | 384-dim, fast, strong general-purpose semantic quality. |
 | Vector DB | ChromaDB (local persistent) | Zero ops, sufficient at this scale, ships as a Python package. |
